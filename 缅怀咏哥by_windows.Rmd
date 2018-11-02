@@ -1,0 +1,179 @@
+---
+title: "red_dream"
+author: "hu"
+date: "2018年10月31日"
+output: html_document
+---
+# 桃李无言，歌咏有悼
+## 缅怀咏哥
+
+```{r setup, include=FALSE}
+library(rJava)
+library(Rwordseg)
+library(wordcloud)
+library(wordcloud2)
+library(tm)
+library(dplyr) 
+library(ggplot2)
+getwd()
+```
+
+
+### 准备数据
+已使用pthon爬取了豆瓣上《幸运52》和《非常6+1》的相关评论
+
+### 《幸运52》：
+```{r }
+data_LY<-read.csv('data_liyong.csv')
+data_52<-filter(data_LY,showName=='幸运52')
+txt1<-data_52$comment
+txt2<-as.character(txt1)
+
+wordbase<-txt2
+## 去掉部分标点符号
+# word_clean<-NULL
+# word_clean$msg <- gsub(pattern = " ", replacement ="", wordbase[,1]) 
+# word_clean$msg <- gsub("\t", "", word_clean$msg) 
+# word_clean$msg <- gsub(",", "???", word_clean$msg)
+# word_clean$msg <- gsub("~|'", "", word_clean$msg)
+# word_clean$msg <- gsub("\\\"", "", word_clean$msg)
+
+insertWords(c('李咏','金蛋'))
+## 分词
+seg_word<-segmentCN(as.character(wordbase))
+## 统计
+word=lapply(X=seg_word, FUN=strsplit, " ") 
+v=table(unlist(word))
+v<-rev(sort(v))
+d<-data.frame(word=names(v),cnt=v)
+d=subset(d, nchar(as.character(d$word))>1)
+## 去停用词
+write.table(d,file="word_result2.txt")
+ssc=read.table("word_result2.txt",header=TRUE)
+#class(ssc)
+
+ssc=as.matrix(d)
+stopwords=read.table("wordclean_list.txt")
+#class(stopwords)
+stopwords=as.vector(stopwords[,1])
+wordResult=removeWords(ssc,stopwords)
+#去空格
+# wordResult<-ssc
+# kkk=which(wordResult[,2]=="")
+# wordResult=wordResult[-kkk,][,2:3]
+# trans to dataframe
+write.table(ssc,'word_result3.txt')      # 不应用去停用词
+mydata<-read.table('word_result3.txt')
+colnames(mydata)<-c('word','word2','cnt')
+
+mydata1<-select(mydata,word,cnt)
+head(mydata1,20)
+```
+
+
+### 《非常6+1》
+
+```{r }
+data_61<-filter(data_LY,showName=='非常6+1')
+txt1<-data_61$comment
+txt2<-as.character(txt1)
+
+wordbase<-txt2
+## 去掉部分标点符号
+# word_clean<-NULL
+# word_clean$msg <- gsub(pattern = " ", replacement ="", wordbase[,1]) 
+# word_clean$msg <- gsub("\t", "", word_clean$msg) 
+# word_clean$msg <- gsub(",", "???", word_clean$msg)
+# word_clean$msg <- gsub("~|'", "", word_clean$msg)
+# word_clean$msg <- gsub("\\\"", "", word_clean$msg)
+
+insertWords(c('李咏','金蛋'))
+## 分词
+seg_word<-segmentCN(as.character(wordbase))
+## 统计
+word=lapply(X=seg_word, FUN=strsplit, " ") 
+v=table(unlist(word))
+v<-rev(sort(v))
+d<-data.frame(word=names(v),cnt=v)
+d=subset(d, nchar(as.character(d$word))>1)
+## 去停用词
+write.table(d,file="word_result2.txt")
+ssc=read.table("word_result2.txt",header=TRUE)
+#class(ssc)
+
+ssc=as.matrix(d)
+stopwords=read.table("wordclean_list.txt")
+#class(stopwords)
+stopwords=as.vector(stopwords[,1])
+wordResult=removeWords(ssc,stopwords)
+#去空格
+# wordResult<-ssc
+# kkk=which(wordResult[,2]=="")
+# wordResult=wordResult[-kkk,][,2:3]
+# trans to dataframe
+write.table(ssc,'word_result3.txt')             # 不应用去停用词
+mydata<-read.table('word_result3.txt') 
+colnames(mydata)<-c('word','word2','cnt')
+
+mydata2<-select(mydata,word,cnt)
+head(mydata2,20)
+```
+
+
+
+## 汇总数据 并画图
+```{r }
+tot1<-merge(mydata1,mydata2,by.x='word',by.y='word',all=TRUE)
+colnames(tot1)<-c('word','cnt_52','cnt_61')
+tot<-filter(tot1,cnt_52>=1 & cnt_61>=1)    #去掉空值
+
+
+ggplot(tot,aes(cnt_52,cnt_61))+geom_point()+
+  geom_text(aes(label=word),color='black',check_overlap =TRUE)+theme_classic()+
+  labs(title='咏远有李')
+```
+
+
+```{r, echo=FALSE}
+# 
+# names(mydata1)
+# write.table(mydata1,'wordcloud.txt')
+# wcd<-read.table('wordcloud.txt')
+# #mydata<-filter(mydata,mydata$cnt>=10)
+# wordcloud2(wcd,size=0.5,fontFamily='楷体',figPath='liyong.png')
+
+# 
+# names(mydata2)
+# write.table(mydata2,'wordcloud2.txt')
+# wcd2<-read.table('wordcloud2.txt')
+# #mydata<-filter(mydata,mydata$cnt>=10)
+# wordcloud2(wcd2,size=0.5,fontFamily='楷体',figPath='liyong.png')
+
+```
+
+## 画词云
+```{r }
+names(tot)
+write.table(tot,'wordcloud3.txt')
+wcd3<-read.table('wordcloud3.txt')
+#mydata<-filter(mydata,mydata$cnt>=10)
+wordcloud2(wcd3,size=2,fontFamily='楷体',figPath='liyong.png')
+
+```
+
+
+
+
+```{r}
+## 三维图像
+# library(rgl)
+# attach(tot)
+# plot3d(cnt_1,cnt_2,cnt_3,col="red",size=5)
+
+```
+
+
+
+
+
+
